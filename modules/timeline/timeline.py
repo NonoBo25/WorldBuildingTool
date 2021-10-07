@@ -1,13 +1,12 @@
-from event import Event
-
-
 class Timeline:
-    events: list(Event)
+    events: list
+    len: int
 
     def __init__(self):
-        self.events = list[Event]()
+        self.events = list()
+        self.len = 0
 
-    def add_event(self, event: Event):
+    def add_event(self, event):
+        self.len += 1
         self.events.append(event)
         self.events.sort(key=lambda eve: eve.date)
-
