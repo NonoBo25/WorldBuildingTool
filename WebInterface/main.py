@@ -1,58 +1,64 @@
 from flask import render_template
 from WebInterface.ColorTheme import ColorTheme
-from flask import Flask, request,redirect,url_for
+from flask import Flask, request, redirect, url_for
 import json
-from modules.timeline import timeline as tl
-from modules.timeline import event as eve
+
 from flask import Request
+from pysondb import db
 
-TIME_LINE = tl.Timeline()
-TIME_LINE.add_event(eve.Event("Genesis", "Creation Of the World!", 0))
-TIME_LINE.add_event(eve.Event("Genesis", "Creation Of the World!", -1))
-TIME_LINE.add_event(eve.Event("Genesis", "Creation Of the World!", 1))
-template_folder = r"templates/"
 Theme = ColorTheme.from_json("Themes/default-theme.json")
-
+template_folder = r"templates/"
 app = Flask(__name__, template_folder=template_folder)
+
+DB = db.getDb("worlds.json")
 
 
 @app.route("/")
 def index():
-    return render_template("index.html", Theme=Theme)
+    worlds = [item['name'] for item in DB.getAll()]
+    return render_template("index.html", Theme=Theme, worlds=worlds)
 
 
-@app.route("/dashboard")
-def dashboard():
-
+@app.route("/<world>/dashboard")
+def dashboard(world):
+    worlds = DB.getAll()
+    names = [item["name"] for item in worlds]
+    if world not in names:
+        DB.deleteAll()
+        worlds.append({'name': world, 'timeline': {'len': 0, 'events': []}})
+        DB.addMany(worlds)
     with open("Parts/dashboard-parts.json", "r") as file:
         parts = json.load(file)
-
     return render_template("Dashboard/dashboard.html", Theme=Theme, parts=parts)
 
 
-@app.route("/dashboard/history")
-def history():
-
+@app.route("/<world>/dashboard/history")
+def history(world):
     with open("Parts/history-parts.json", "r") as file:
         parts = json.load(file)
 
     return render_template("Dashboard/dashboard.html", Theme=Theme, parts=parts)
 
 
-@app.route("/dashboard/history/timeline")
-def timeline():
-    global TIME_LINE
-    if request.method=="GET" or request.method=="get" :
-        if len(request.args.to_dict()) >0:
-            return redirect("/dashboard/history/timeline")
-    return render_template("Dashboard/History/timeline.html", Theme=Theme, timeline=TIME_LINE)
+@app.route("/<world>/dashboard/history/timeline")
+def timeline(world):
+    if request.method == "GET" or request.method == "get":
+        if len(request.args.to_dict()) > 0:
+            return redirect(f"/{world}/dashboard/history/timeline")
+    tl = DB.getByQuery({"name": world})
+    tl = tl[0]["timeline"]
+    return render_template("Dashboard/History/timeline.html", Theme=Theme, timeline=tl)
 
 
-@app.route("/add-event", methods=["POST"])
-def add_event():
-    global TIME_LINE
+@app.route("/<world>/dashboard/history/timeline/add-event", methods=["POST"])
+def add_event(world):
     d = request.json
-    TIME_LINE.add_event(eve.Event(d["name"], d["description"], int(d["year"])))
+    tl = DB.getByQuery({"name": world})
+    l = tl[0]["timeline"]["len"] + 1
+    tl = tl[0]["timeline"]["events"]
+    tl.append(d)
+    DB.updateByQuery({"name": world}, {"timeline": {"len": l, "events": tl}})
+    print(DB.getAll())
     return request.json
 
 
