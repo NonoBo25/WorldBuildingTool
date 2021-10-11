@@ -12,12 +12,16 @@
     WORLD
 </h1>
 </br>
+<button type="button" id="open" class="btn btn-dark"
+        style="width:30%;height:25%;background-color:{{Theme.colors['primary']}};margin-top:5%;margin-left:35%;font-size:500%;border-radius:100px;">
+    Open ....
+</button>
 <button type="button" id="create" class="btn btn-dark"
         style="width:30%;height:25%;background-color:{{Theme.colors['primary']}};margin-top:5%;margin-left:35%;font-size:500%;border-radius:100px;">
-    CREATE!
+    Create ....
 </button>
 <div class="modal" id="myModal" tabindex="-1" role="dialog">
-    <form id="add-event" action="/" method="get">
+    <form>
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -32,25 +36,79 @@
                     <div class="form-group ">
                         <label for="inputState"></label>
                         <select id="inputState" class="form-control">
-                            <option selected>Choose World...</option>
+                            <option value="None" selected>Choose World...</option>
                             {% for item in worlds %}
-                            <option>{{item}}</option>
+                            <option value="{{item['name']}}">{{item['name']}}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    </br>
-                    <div class="form-group ">
-                        <input id="newWorld" class="form-control" placeholder="Create New World... (Enter Name)"/>
-                    </div>
-
                 </div>
                 <div class="modal-footer">
-                    <button id="send" type="submit" class="btn btn-primary">Open!</button>
+                    <button id="send" type="button" class="btn btn-primary">Open!</button>
                 </div>
             </div>
         </div>
     </form>
 </div>
+<div class="modal" id="myModal2" tabindex="-1" role="dialog">
+    <form>
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Open World</h5>
+                    <button type="button" class="close"
+                            onclick="var modal = document.getElementById('myModal');modal.style.display = 'none';"
+                            aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group ">
+                        <input id="newWorld" class="form-control" placeholder="Create New World... (Enter Name)"/>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="send-2" type="button" class="btn btn-primary">Open!</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function createWorld(){
+        console.log("hi");
+        var world2= document.getElementById("newWorld");
+        var object = {};
+        object["name"]=world2.value;
+        var json = JSON.stringify(object);
+        let dataReceived = "";
+        fetch("/add_new_world", {
+            credentials: "same-origin",
+            mode: "same-origin",
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: json
+        })
+            .then(resp => {
+                if (resp.status === 200) {
+                    return resp.json()
+                } else {
+                    console.log("Status: " + resp.status)
+                    return Promise.reject("server")
+                }
+            })
+            .then(dataJson => {
+                dataReceived = dataJson;
+            })
+            .catch(err => {
+                if (err === "server") return
+                console.log(err)
+            })
+        return false;
+    }
+
+</script>
 <script>
     var go = document.getElementById("send");
     var world= document.getElementById("inputState");
@@ -58,18 +116,25 @@
         window.location.href = "/"+world.value+"/dashboard";
         return false;
     }
+    var go2 = document.getElementById("send-2");
+    var world2= document.getElementById("newWorld");
+    go2.onclick = function(){
+        createWorld();
+        window.location.href = "/"+world2.value+"/dashboard";
+        return false;
+    }
     var modal = document.getElementById("myModal");
-    var btn = document.getElementById("create");
+    var btn = document.getElementById("open");
     btn.onclick = function() {
       modal.style.display = "block";
     }
-
-
-
-
-
-
-
+    var modal2 = document.getElementById("myModal2");
+    var btn = document.getElementById("create");
+    btn.onclick = function() {
+      modal2.style.display = "block";
+    }
 
 </script>
+
+
 {% endblock %}
